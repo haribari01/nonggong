@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <title>토양 적합성 지도</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Leaflet CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- 스타일시트 -->
+  <link rel="stylesheet" href="/static/css/map.css" />
+</head>
+<body>
+  <!-- 상단 컨트롤 바 -->
+  <div class="topbar">
+    <div class="title-section">
+      <h1 id="title">토양 적합성 지도</h1>
+      <div id="subtitle" class="subtitle"></div>
+    </div>
+
+    <div class="controls">
+      <div class="control-group">
+        <label for="cropSelect">작물 선택:</label>
+        <select id="cropSelect">
+          <option value="">작물을 선택하세요...</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label for="viewMode">표시 방식:</label>
+        <select id="viewMode">
+          <option value="suitability">적합성 점수</option>
+          <option value="high_suit">매우 적합 면적</option>
+          <option value="total_area">전체 면적</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- 지도 영역 -->
+  <div id="map"></div>
+
+  <!-- 로딩 인디케이터 -->
+  <div id="loading" class="loading hidden">
+    <div class="loading-spinner"></div>
+    <div>데이터를 불러오는 중...</div>
+  </div>
+
+  <!-- JavaScript -->
+  <script src="/static/js/map.js"></script>
+</body>
+</html>
