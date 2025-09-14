@@ -6,6 +6,15 @@ let selectedFile = '';
 let selectedCrop = '';
 let selectedDataType = 'high_Suit_Area';
 let colorScale = [];
+let currentLevel = 'sido';
+
+// 줌 레벨별 행정구역 설정
+const ZOOM_LEVELS = {
+    SIDO: { min: 0, max: 7, file: "/static/data/sido_wgs84.json", level: 'sido', idField: 'CTPRVN_CD' },
+    SIGUNGU: { min: 8, max: 8, file: "/static/data/si_gun_gu_wgs84.json", level: 'sigungu', idField: 'SIG_CD' },
+    EUPMYEONDONG: { min: 9, max: 9, file: "/static/data/eup_myeon_dong_wgs84.json", level: 'eupmyeondong', idField: 'EMD_CD' },
+    LI: { min: 10, max: 18, file: "/static/data/li_wgs84.json", level: 'li', idField: 'LI_CD' }
+};
 
 // 지도 초기화
 function initializeMap() {
@@ -15,10 +24,34 @@ function initializeMap() {
         attribution: '&copy; OpenStreetMap contributors',
         maxZoom: 18
     }).addTo(leafletMap);
+
+    // 줌 이벤트 리스너 추가
+    leafletMap.on('zoomend', handleZoomChange);
 }
 
-// 색상 스케일 계산
-function calculateColorScale(dataType, data) {
+// 줌 레벨에 따른 행정구역 레벨 결정
+function getCurrentLevelConfig(zoomLevel) {
+    for (const config of Object.values(ZOOM_LEVELS)) {
+        if (zoomLevel >= config.min && zoomLevel <= config.max) {
+            return config;
+        }
+    }
+    return ZOOM_LEVELS.SIDO; // 기본값
+}
+
+// 줌 변경 처리
+function handleZoomChange() {
+    const currentZoom = leafletMap.getZoom();
+    const levelConfig = getCurrentLevelConfig(currentZoom);
+
+    if (currentLevel !== levelConfig.level) {
+        currentLevel = levelConfig.level;
+        renderMapData();
+    }
+}
+
+// 색상 스케일 계산 (레벨별로 동적 계산)
+function calculateColorScale(dataType, data, level) {
     const validValues = data.map(d => d[dataType]).filter(v => v > 0).sort((a, b) => b - a);
 
     if (validValues.length === 0) {
@@ -27,13 +60,21 @@ function calculateColorScale(dataType, data) {
 
     const maxValue = Math.max(...validValues);
 
+    // 레벨별로 스케일 조정
+    const scaleRatios = {
+        'sido': [0.8, 0.6, 0.4, 0.2],
+        'sigungu': [0.1, 0.075, 0.05, 0.025],
+        'eupmyeondong': [0.01, 0.006, 0.003, 0.001],
+        'li': [0.001, 0.0006, 0.0003, 0.0002]
+    }[level];
+
     return [
-        { min: maxValue * 0.8, color: 'rgb(34, 139, 34)' },     // 진한 초록
-        { min: maxValue * 0.6, color: 'rgb(144, 238, 144)' },   // 연한 초록
-        { min: maxValue * 0.4, color: 'rgb(255, 241, 118)' },   // 노랑
-        { min: maxValue * 0.2, color: 'rgb(255, 193, 144)' },   // 주황
-        { min: 1, color: 'rgb(255, 69, 0)' },                  // 진한 주황
-        { min: 0, color: 'rgb(240, 240, 240)' }                 // 회색
+        { min: maxValue * scaleRatios[0], color: 'rgb(34, 139, 34)' },     // 진한 초록
+        { min: maxValue * scaleRatios[1], color: 'rgb(144, 238, 144)' },   // 연한 초록
+        { min: maxValue * scaleRatios[2], color: 'rgb(255, 241, 118)' },   // 노랑
+        { min: maxValue * scaleRatios[3], color: 'rgb(255, 193, 144)' },   // 주황
+        { min: 1, color: 'rgb(255, 69, 0)' },                             // 진한 주황
+        { min: 0, color: 'rgb(240, 240, 240)' }                           // 회색
     ];
 }
 
@@ -50,9 +91,9 @@ function getValueColor(value, scale) {
 }
 
 // 지역 스타일 설정
-function getRegionStyle(feature) {
-    const regionCode = feature.properties.CTPRVN_CD;
-    const regionInfo = mapData.find(d => d.ctprvn_cd === regionCode);
+function getRegionStyle(feature, levelConfig) {
+    const regionCode = feature.properties[levelConfig.idField];
+    const regionInfo = mapData.find(d => d.region_cd === regionCode);
     const value = regionInfo ? regionInfo[selectedDataType] : 0;
 
     return {
@@ -82,10 +123,16 @@ function resetRegionStyle(e) {
 }
 
 // 팝업 생성
-function createPopupContent(feature) {
-    const regionCode = feature.properties.CTPRVN_CD;
-    const regionInfo = mapData.find(d => d.ctprvn_cd === regionCode);
-    const regionName = feature.properties.CTP_KOR_NM;
+function createPopupContent(feature, levelConfig) {
+    const regionCode = feature.properties[levelConfig.idField];
+    const regionInfo = mapData.find(d => d.region_cd === regionCode);
+
+    const regionName = {
+        'sido': () => feature.properties.CTP_KOR_NM,
+        'sigungu': () => feature.properties.SIG_KOR_NM,
+        'eupmyeondong': () => feature.properties.EMD_KOR_NM,
+        'li': () => feature.properties.LI_KOR_NM
+    }[levelConfig.level]() || regionCode;
 
     if (!regionInfo) {
         return `<div style="font-family: 'Malgun Gothic', Arial; padding: 10px;"><strong>${regionName}</strong><br>데이터 없음</div>`;
@@ -143,7 +190,14 @@ function updateMapLegend() {
         'etc_Area': '기타_면적'
     };
 
-    document.getElementById('legendTitle').textContent = `${dataNames[selectedDataType]} (ha)`;
+    const levelNames = {
+        'sido': '시도',
+        'sigungu': '시군구',
+        'eupmyeondong': '읍면동',
+        'li': '리'
+    };
+
+    document.getElementById('legendTitle').textContent = `${dataNames[selectedDataType]} (${levelNames[currentLevel]})`;
 
     const legendContent = document.getElementById('legendContent');
     legendContent.innerHTML = '';
@@ -182,21 +236,26 @@ function renderMapData() {
         return;
     }
 
+    const levelConfig = getCurrentLevelConfig(leafletMap.getZoom());
+    currentLevel = levelConfig.level;
+
     Promise.all([
-        fetch('/static/data/sido_wgs84.json').then(r => r.json()),
-        fetch(`/api/data?filename=${selectedFile}&crop_code=${selectedCrop}`).then(r => r.json())
+        fetch(levelConfig.file).then(r => r.json()),
+        fetch(`/api/data?filename=${selectedFile}&crop_code=${selectedCrop}&level=${currentLevel}`).then(r => r.json())
     ]).then(([geoData, data]) => {
         mapData = data;
-        colorScale = calculateColorScale(selectedDataType, data);
+        colorScale = calculateColorScale(selectedDataType, data, currentLevel);
 
         if (mapLayer) {
             leafletMap.removeLayer(mapLayer);
         }
 
         mapLayer = L.geoJSON(geoData, {
-            style: getRegionStyle,
+            style: function(feature) {
+                return getRegionStyle(feature, levelConfig);
+            },
             onEachFeature: function(feature, layer) {
-                layer.bindPopup(createPopupContent(feature), {
+                layer.bindPopup(createPopupContent(feature, levelConfig), {
                     maxWidth: 250,
                     className: 'custom-popup'
                 });

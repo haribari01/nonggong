@@ -122,3 +122,29 @@ body {
     border: 1px solid #ddd;
     flex-shrink: 0;
 }
+
+/* 줌 인디케이터 스타일 */
+.zoom-indicator {
+    position: absolute;
+    bottom: 30px;
+    left: 15px;
+    background: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    z-index: 1000;
+    font-size: 12px;
+    color: #666;
+    font-weight: 500;
+    border-left: 3px solid #2196F3;
+    max-width: 300px;
+}
+
+.zoom-indicator.fade {
+    opacity: 0.7;
+    transition: opacity 0.3s ease;
+}
+
+.zoom-indicator:hover {
+    opacity: 1;
+}
