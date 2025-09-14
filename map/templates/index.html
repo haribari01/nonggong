@@ -3,21 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Soil Map</title>
-
-    <!-- Leaflet CSS -->
+    <title>작물별 토양적성 통계정보</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-
-    <!-- Custom CSS -->
     <link rel="stylesheet" href="/static/css/map.css">
 </head>
 <body>
+    <div class="title">작물별 토양적성 통계정보</div>
+
+    <div class="dropdown-container">
+        <select id="dataSelector">
+            <option value="high_Suit_Area">최적지_면적</option>
+            <option value="suit_Area">적지_면적</option>
+            <option value="poss_Area">가능지_면적</option>
+            <option value="low_Suit_Area">저위생산지_면적</option>
+            <option value="etc_Area">기타_면적</option>
+        </select>
+    </div>
+
     <div id="map"></div>
 
-    <!-- Leaflet JS -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <div class="legend">
+        <div class="legend-title">면적 (ha)</div>
+        <div class="legend-items" id="legendItems"></div>
+    </div>
 
-    <!-- Custom JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="/static/js/map.js"></script>
 </body>
 </html>
