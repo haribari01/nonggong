@@ -73,7 +73,8 @@ function calculateColorScale(dataType, data, level) {
         { min: maxValue * scaleRatios[1], color: 'rgb(144, 238, 144)' },   // 연한 초록
         { min: maxValue * scaleRatios[2], color: 'rgb(255, 241, 118)' },   // 노랑
         { min: maxValue * scaleRatios[3], color: 'rgb(255, 193, 144)' },   // 주황
-        { min: 1, color: 'rgb(255, 69, 0)' },                             // 진한 주황
+        // { min: 1, color: 'rgb(255, 69, 0)' },                             // 진한 주황
+        { min: 1, color: 'rgb(255, 200, 250)' },                             // 핑크(테스트)
         { min: 0, color: 'rgb(240, 240, 240)' }                           // 회색
     ];
 }
@@ -275,6 +276,45 @@ function renderMapData() {
     });
 }
 
+// CSV 다운로드 함수
+function downloadCSV() {
+    if (!selectedFile) {
+        alert('CSV 파일을 먼저 선택해주세요.');
+        return;
+    }
+
+    const downloadBtn = document.getElementById('downloadBtn');
+    const originalText = downloadBtn.innerHTML;
+
+    // 다운로드 중 표시
+    downloadBtn.innerHTML = `
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="8,12 12,16 16,12"/>
+            <line x1="12" y1="8" x2="12" y2="16"/>
+        </svg>
+        다운로드 중...
+    `;
+    downloadBtn.disabled = true;
+
+    // 다운로드 링크 생성
+    const downloadUrl = `/api/download-csv?filename=${encodeURIComponent(selectedFile)}`;
+
+    // 임시 링크 생성하여 다운로드
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = selectedFile;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    // 버튼 상태 복원
+    setTimeout(() => {
+        downloadBtn.innerHTML = originalText;
+        downloadBtn.disabled = false;
+    }, 1000);
+}
+
 // 초기화 및 이벤트 설정
 document.addEventListener('DOMContentLoaded', function() {
     initializeMap();
@@ -297,12 +337,16 @@ document.addEventListener('DOMContentLoaded', function() {
         selectedFile = e.target.value;
         const cropSelect = document.getElementById('cropSelect');
         const dataSelect = document.getElementById('dataSelect');
+        const downloadBtn = document.getElementById('downloadBtn');
 
         if (selectedFile) {
             // 제목 표시
             const titleText = e.target.options[e.target.selectedIndex].textContent;
             document.getElementById('titleText').textContent = titleText;
             document.getElementById('titleContainer').style.display = 'block';
+
+            // 다운로드 버튼 표시
+            downloadBtn.style.display = 'flex';
 
             // 작물 목록 로드
             fetch(`/api/crops?filename=${selectedFile}`)
@@ -329,6 +373,7 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             // 초기화
             document.getElementById('titleContainer').style.display = 'none';
+            downloadBtn.style.display = 'none';
             cropSelect.innerHTML = '<option value="">선택하세요</option>';
             cropSelect.disabled = true;
             dataSelect.disabled = true;
@@ -359,4 +404,7 @@ document.addEventListener('DOMContentLoaded', function() {
             renderMapData();
         }
     });
+
+    // 다운로드 버튼 이벤트
+    document.getElementById('downloadBtn').addEventListener('click', downloadCSV);
 });

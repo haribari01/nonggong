@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>토양 적성 지도</title>
+    <title>토양 지도</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="/static/css/map.css">
 </head>
@@ -13,6 +13,18 @@
     </div>
 
     <div class="controls">
+        <div class="control-header">
+            <span class="header-title">데이터 설정</span>
+            <button id="downloadBtn" class="download-btn" style="display: none;" title="CSV 다운로드">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7,10 12,15 17,10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                CSV 다운로드
+            </button>
+        </div>
+
         <div class="control-row">
             <label>CSV 파일:</label>
             <select id="csvSelect">
@@ -44,10 +56,6 @@
     <div class="legend-box" id="legendBox" style="display: none;">
         <div class="legend-header" id="legendTitle">면적 (ha)</div>
         <div class="legend-content" id="legendContent"></div>
-    </div>
-
-    <div class="zoom-indicator" id="zoomIndicator" style="display: block;">
-        줌: 0-7(시도) → 8(시군구) → 9(읍면동) → 10-18(리)
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>

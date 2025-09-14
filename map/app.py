@@ -1,9 +1,10 @@
 from fastapi import FastAPI, Query
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 import pandas as pd
 import uvicorn
 from typing import Optional
+import os
 
 app = FastAPI()
 
@@ -96,5 +97,25 @@ async def get_map_data(filename: str, crop_code: str, level: str = "sido"):
         return JSONResponse(content=[], status_code=500)
 
 
+# CSV 다운로드 API 추가
+@app.get("/api/download-csv")
+async def download_csv(filename: str):
+    try:
+        file_path = f"data/{filename}"
+
+        # 파일 존재 확인
+        if not os.path.exists(file_path):
+            return JSONResponse(content={"error": "File not found"}, status_code=404)
+
+        return FileResponse(
+            path=file_path,
+            filename=filename,
+            media_type='text/csv'
+        )
+    except Exception as e:
+        print(f"Download error: {e}")
+        return JSONResponse(content={"error": "Download failed"}, status_code=500)
+
+
 if __name__ == "__main__":
-    uvicorn.run(app, host="127.0.0.1", port=8080)
+    uvicorn.run(app, host="127.0.0.1", port=8000)
