@@ -1,51 +1,62 @@
-const map = L.map('map').setView([36.5, 127.5], 7);
+// 전역 변수
+let leafletMap;
+let mapLayer;
+let mapData = [];
+let selectedFile = '';
+let selectedCrop = '';
+let selectedDataType = 'high_Suit_Area';
+let colorScale = [];
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    maxZoom: 19
-}).addTo(map);
+// 지도 초기화
+function initializeMap() {
+    leafletMap = L.map('mapContainer').setView([36.5, 127.5], 7);
 
-let geoJsonLayer;
-let soilData;
-let currentDataType = 'high_Suit_Area';
-let currentColorRanges = [];
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors',
+        maxZoom: 18
+    }).addTo(leafletMap);
+}
 
-function getColorRanges(dataType, data) {
-    const values = data.map(d => d[dataType]).filter(v => v > 0).sort((a, b) => b - a);
-    if (values.length === 0) return [
-        { min: 0, color: 'rgb(240, 240, 240)' }
-    ];
+// 색상 스케일 계산
+function calculateColorScale(dataType, data) {
+    const validValues = data.map(d => d[dataType]).filter(v => v > 0).sort((a, b) => b - a);
 
-    const max = Math.max(...values);
+    if (validValues.length === 0) {
+        return [{ min: 0, color: 'rgb(240, 240, 240)' }];
+    }
+
+    const maxValue = Math.max(...validValues);
 
     return [
-        { min: max * 0.8, color: 'rgb(34, 139, 34)' },      // 진한 초록 (80%+)
-        { min: max * 0.6, color: 'rgb(144, 238, 144)' },    // 연한 초록 (60-80%)
-        { min: max * 0.4, color: 'rgb(255, 241, 118)' },    // 노랑 (40-60%)
-        { min: max * 0.2, color: 'rgb(255, 193, 144)' },    // 주황 (20-40%)
-        { min: 1, color: 'rgb(255, 69, 0)' },            // 진한 주황 (1-20%)
-        { min: 0, color: 'rgb(240, 240, 240)' }             // 회색 (0)
+        { min: maxValue * 0.8, color: 'rgb(34, 139, 34)' },     // 진한 초록
+        { min: maxValue * 0.6, color: 'rgb(144, 238, 144)' },   // 연한 초록
+        { min: maxValue * 0.4, color: 'rgb(255, 241, 118)' },   // 노랑
+        { min: maxValue * 0.2, color: 'rgb(255, 193, 144)' },   // 주황
+        { min: 1, color: 'rgb(255, 69, 0)' },                  // 진한 주황
+        { min: 0, color: 'rgb(240, 240, 240)' }                 // 회색
     ];
 }
 
-function getColor(value, ranges) {
+// 값에 따른 색상 반환
+function getValueColor(value, scale) {
     if (value === 0) return 'rgb(240, 240, 240)';
 
-    for (let range of ranges) {
+    for (const range of scale) {
         if (value >= range.min) {
             return range.color;
         }
     }
-    return 'rgb(255, 235, 235)';
+    return 'rgb(220, 20, 20)';
 }
 
-function style(feature, dataType, ranges) {
-    const ctprvn_cd = feature.properties.CTPRVN_CD;
-    const data = soilData.find(d => d.ctprvn_cd === ctprvn_cd);
-    const value = data ? data[dataType] : 0;
+// 지역 스타일 설정
+function getRegionStyle(feature) {
+    const regionCode = feature.properties.CTPRVN_CD;
+    const regionInfo = mapData.find(d => d.ctprvn_cd === regionCode);
+    const value = regionInfo ? regionInfo[selectedDataType] : 0;
 
     return {
-        fillColor: getColor(value, ranges),
+        fillColor: getValueColor(value, colorScale),
         weight: 1,
         opacity: 1,
         color: '#666',
@@ -53,136 +64,240 @@ function style(feature, dataType, ranges) {
     };
 }
 
-function highlightFeature(e) {
+// 마우스 호버 효과
+function highlightRegion(e) {
     const layer = e.target;
     layer.setStyle({
         weight: 3,
-        color: '#fff',
+        color: '#ffffff',
         fillOpacity: 0.9
     });
     layer.bringToFront();
 }
 
-function resetHighlight(e) {
-    geoJsonLayer.resetStyle(e.target);
+function resetRegionStyle(e) {
+    if (mapLayer) {
+        mapLayer.resetStyle(e.target);
+    }
 }
 
-function updateLegend(dataType, ranges) {
-    const legendItems = document.getElementById('legendItems');
-    const selectedText = document.querySelector(`#dataSelector option[value="${dataType}"]`).textContent;
+// 팝업 생성
+function createPopupContent(feature) {
+    const regionCode = feature.properties.CTPRVN_CD;
+    const regionInfo = mapData.find(d => d.ctprvn_cd === regionCode);
+    const regionName = feature.properties.CTP_KOR_NM;
 
-    document.querySelector('.legend-title').textContent = `${selectedText} (ha)`;
+    if (!regionInfo) {
+        return `<div style="font-family: 'Malgun Gothic', Arial; padding: 10px;"><strong>${regionName}</strong><br>데이터 없음</div>`;
+    }
 
-    legendItems.innerHTML = '';
+    const totalArea = regionInfo.high_Suit_Area + regionInfo.suit_Area + regionInfo.poss_Area + regionInfo.low_Suit_Area + regionInfo.etc_Area;
 
-    ranges.forEach((range, index) => {
+    return `
+        <div style="font-family: 'Malgun Gothic', Arial; min-width: 200px; padding: 10px;">
+            <div style="font-weight: bold; font-size: 16px; margin-bottom: 8px; text-align: center; color: #333;">${regionName}</div>
+            <div style="font-size: 13px; margin-bottom: 10px; text-align: center; color: #666;">${regionInfo.soil_Crop_Nm}</div>
+            <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 4px 0; color: #666;">최적지 면적:</td>
+                    <td style="padding: 4px 0; color: #2196F3; font-weight: bold; text-align: right;">${regionInfo.high_Suit_Area.toLocaleString()}</td>
+                    <td style="padding: 4px 0; color: #999; font-size: 12px; text-align: right;">ha</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 4px 0; color: #666;">적지:</td>
+                    <td style="padding: 4px 0; color: #2196F3; font-weight: bold; text-align: right;">${regionInfo.suit_Area.toLocaleString()}</td>
+                    <td style="padding: 4px 0; color: #999; font-size: 12px; text-align: right;">ha</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 4px 0; color: #666;">가능지:</td>
+                    <td style="padding: 4px 0; color: #2196F3; font-weight: bold; text-align: right;">${regionInfo.poss_Area.toLocaleString()}</td>
+                    <td style="padding: 4px 0; color: #999; font-size: 12px; text-align: right;">ha</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 4px 0; color: #666;">저위생산지:</td>
+                    <td style="padding: 4px 0; color: #2196F3; font-weight: bold; text-align: right;">${regionInfo.low_Suit_Area.toLocaleString()}</td>
+                    <td style="padding: 4px 0; color: #999; font-size: 12px; text-align: right;">ha</td>
+                </tr>
+                <tr>
+                    <td style="padding: 4px 0; color: #666;">기타:</td>
+                    <td style="padding: 4px 0; color: #2196F3; font-weight: bold; text-align: right;">${regionInfo.etc_Area.toLocaleString()}</td>
+                    <td style="padding: 4px 0; color: #999; font-size: 12px; text-align: right;">ha</td>
+                </tr>
+            </table>
+            <div style="margin-top: 10px; padding-top: 8px; border-top: 2px solid #ddd; text-align: center;">
+                <span style="color: #666; font-size: 13px;">전체 면적: </span>
+                <span style="color: #333; font-weight: bold; font-size: 14px;">${totalArea.toLocaleString()}</span>
+                <span style="color: #999; font-size: 12px;"> ha</span>
+            </div>
+        </div>
+    `;
+}
+
+// 범례 업데이트
+function updateMapLegend() {
+    const dataNames = {
+        'high_Suit_Area': '최적지_면적',
+        'suit_Area': '적지_면적',
+        'poss_Area': '가능지_면적',
+        'low_Suit_Area': '저위생산지_면적',
+        'etc_Area': '기타_면적'
+    };
+
+    document.getElementById('legendTitle').textContent = `${dataNames[selectedDataType]} (ha)`;
+
+    const legendContent = document.getElementById('legendContent');
+    legendContent.innerHTML = '';
+
+    colorScale.forEach((range, index) => {
         const item = document.createElement('div');
         item.className = 'legend-item';
 
         const colorBox = document.createElement('div');
-        colorBox.className = 'legend-color';
+        colorBox.className = 'legend-color-box';
         colorBox.style.backgroundColor = range.color;
 
         const label = document.createElement('span');
         if (range.min === 0) {
-            label.textContent = `0 (없음)`;
+            label.textContent = '0 (없음)';
         } else if (index === 0) {
             label.textContent = `${Math.round(range.min).toLocaleString()}+`;
         } else {
-            const nextMin = ranges[index-1].min;
-            label.textContent = `${Math.round(range.min).toLocaleString()} - ${Math.round(nextMin - 1).toLocaleString()}`;
+            const prevMin = colorScale[index-1].min;
+            label.textContent = `${Math.round(range.min).toLocaleString()} - ${Math.round(prevMin - 1).toLocaleString()}`;
         }
 
         item.appendChild(colorBox);
         item.appendChild(label);
-        legendItems.appendChild(item);
+        legendContent.appendChild(item);
     });
 }
 
-function updateMap() {
-    if (geoJsonLayer) {
-        map.removeLayer(geoJsonLayer);
+// 지도 데이터 렌더링
+function renderMapData() {
+    if (!selectedFile || !selectedCrop) {
+        if (mapLayer) {
+            leafletMap.removeLayer(mapLayer);
+        }
+        document.getElementById('legendBox').style.display = 'none';
+        return;
     }
 
     Promise.all([
-        fetch('/static/data/sido_wgs84.json').then(response => response.json()),
-        fetch('/api/soil-data').then(response => response.json())
+        fetch('/static/data/sido_wgs84.json').then(r => r.json()),
+        fetch(`/api/data?filename=${selectedFile}&crop_code=${selectedCrop}`).then(r => r.json())
     ]).then(([geoData, data]) => {
-        soilData = data;
-        currentColorRanges = getColorRanges(currentDataType, data);
+        mapData = data;
+        colorScale = calculateColorScale(selectedDataType, data);
 
-        geoJsonLayer = L.geoJSON(geoData, {
-            style: function(feature) {
-                return style(feature, currentDataType, currentColorRanges);
-            },
+        if (mapLayer) {
+            leafletMap.removeLayer(mapLayer);
+        }
+
+        mapLayer = L.geoJSON(geoData, {
+            style: getRegionStyle,
             onEachFeature: function(feature, layer) {
-                const ctprvn_cd = feature.properties.CTPRVN_CD;
-                const regionData = soilData.find(d => d.ctprvn_cd === ctprvn_cd);
-                const regionName = feature.properties.CTP_KOR_NM;
-
-                if (regionData) {
-                    const totalArea = regionData.high_Suit_Area + regionData.suit_Area + regionData.poss_Area + regionData.low_Suit_Area + regionData.etc_Area;
-
-                    layer.bindPopup(`
-                        <div style="font-family: 'Malgun Gothic', Arial, sans-serif; min-width: 200px; padding: 8px;">
-                            <div style="font-weight: bold; font-size: 15px; margin-bottom: 10px; color: #333; text-align: center;">${regionName}</div>
-                            <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
-                                <tr style="border-bottom: 1px solid #eee;">
-                                    <td style="padding: 3px 0; color: #666; width: 60%;">최적지 면적:</td>
-                                    <td style="padding: 3px 0; color: #4A90E2; font-weight: bold; text-align: right;">${regionData.high_Suit_Area.toLocaleString()}</td>
-                                    <td style="padding: 3px 0; color: #999; text-align: right; font-size: 11px; width: 15%;">ha</td>
-                                </tr>
-                                <tr style="border-bottom: 1px solid #eee;">
-                                    <td style="padding: 3px 0; color: #666;">적지:</td>
-                                    <td style="padding: 3px 0; color: #4A90E2; font-weight: bold; text-align: right;">${regionData.suit_Area.toLocaleString()}</td>
-                                    <td style="padding: 3px 0; color: #999; text-align: right; font-size: 11px;">ha</td>
-                                </tr>
-                                <tr style="border-bottom: 1px solid #eee;">
-                                    <td style="padding: 3px 0; color: #666;">가능지:</td>
-                                    <td style="padding: 3px 0; color: #4A90E2; font-weight: bold; text-align: right;">${regionData.poss_Area.toLocaleString()}</td>
-                                    <td style="padding: 3px 0; color: #999; text-align: right; font-size: 11px;">ha</td>
-                                </tr>
-                                <tr style="border-bottom: 1px solid #eee;">
-                                    <td style="padding: 3px 0; color: #666;">저위생산지:</td>
-                                    <td style="padding: 3px 0; color: #4A90E2; font-weight: bold; text-align: right;">${regionData.low_Suit_Area.toLocaleString()}</td>
-                                    <td style="padding: 3px 0; color: #999; text-align: right; font-size: 11px;">ha</td>
-                                </tr>
-                                <tr>
-                                    <td style="padding: 3px 0; color: #666;">기타:</td>
-                                    <td style="padding: 3px 0; color: #4A90E2; font-weight: bold; text-align: right;">${regionData.etc_Area.toLocaleString()}</td>
-                                    <td style="padding: 3px 0; color: #999; text-align: right; font-size: 11px;">ha</td>
-                                </tr>
-                            </table>
-                            <div style="margin-top: 8px; padding-top: 6px; border-top: 2px solid #ddd; text-align: center;">
-                                <span style="color: #666; font-size: 12px;">전체 면적: </span>
-                                <span style="color: #333; font-weight: bold; font-size: 13px;">${totalArea.toLocaleString()}</span>
-                                <span style="color: #999; font-size: 11px;"> ha</span>
-                            </div>
-                        </div>
-                    `, {
-                        maxWidth: 220,
-                        className: 'custom-popup'
-                    });
-                } else {
-                    layer.bindPopup(`<div style="font-family: Arial, sans-serif;"><strong>${regionName}</strong><br/>데이터 없음</div>`);
-                }
+                layer.bindPopup(createPopupContent(feature), {
+                    maxWidth: 250,
+                    className: 'custom-popup'
+                });
 
                 layer.on({
-                    mouseover: highlightFeature,
-                    mouseout: resetHighlight
+                    mouseover: highlightRegion,
+                    mouseout: resetRegionStyle
                 });
             }
-        }).addTo(map);
+        }).addTo(leafletMap);
 
-        updateLegend(currentDataType, currentColorRanges);
-    }).catch(error => {
-        console.error('데이터 로드 실패:', error);
+        updateMapLegend();
+        document.getElementById('legendBox').style.display = 'block';
+
+    }).catch(err => {
+        console.error('데이터 로드 오류:', err);
     });
 }
 
-document.getElementById('dataSelector').addEventListener('change', function(e) {
-    currentDataType = e.target.value;
-    updateMap();
-});
+// 초기화 및 이벤트 설정
+document.addEventListener('DOMContentLoaded', function() {
+    initializeMap();
 
-updateMap();
+    // CSV 파일 목록 로드
+    fetch('/api/csv-list')
+        .then(r => r.json())
+        .then(files => {
+            const csvSelect = document.getElementById('csvSelect');
+            files.forEach(file => {
+                const option = document.createElement('option');
+                option.value = file.filename;
+                option.textContent = file.display_name;
+                csvSelect.appendChild(option);
+            });
+        });
+
+    // CSV 선택 이벤트
+    document.getElementById('csvSelect').addEventListener('change', function(e) {
+        selectedFile = e.target.value;
+        const cropSelect = document.getElementById('cropSelect');
+        const dataSelect = document.getElementById('dataSelect');
+
+        if (selectedFile) {
+            // 제목 표시
+            const titleText = e.target.options[e.target.selectedIndex].textContent;
+            document.getElementById('titleText').textContent = titleText;
+            document.getElementById('titleContainer').style.display = 'block';
+
+            // 작물 목록 로드
+            fetch(`/api/crops?filename=${selectedFile}`)
+                .then(r => r.json())
+                .then(crops => {
+                    cropSelect.innerHTML = '<option value="">선택하세요</option>';
+                    crops.forEach(crop => {
+                        const option = document.createElement('option');
+                        option.value = crop.soil_Crop_Cd;
+                        option.textContent = crop.soil_Crop_Nm;
+                        cropSelect.appendChild(option);
+                    });
+                    cropSelect.disabled = false;
+
+                    // 사과 기본 선택
+                    const appleOption = Array.from(cropSelect.options).find(opt => opt.value === 'CR005');
+                    if (appleOption) {
+                        appleOption.selected = true;
+                        selectedCrop = 'CR005';
+                        dataSelect.disabled = false;
+                        renderMapData();
+                    }
+                });
+        } else {
+            // 초기화
+            document.getElementById('titleContainer').style.display = 'none';
+            cropSelect.innerHTML = '<option value="">선택하세요</option>';
+            cropSelect.disabled = true;
+            dataSelect.disabled = true;
+            selectedFile = '';
+            selectedCrop = '';
+            renderMapData();
+        }
+    });
+
+    // 작물 선택 이벤트
+    document.getElementById('cropSelect').addEventListener('change', function(e) {
+        selectedCrop = e.target.value;
+        const dataSelect = document.getElementById('dataSelect');
+
+        if (selectedCrop) {
+            dataSelect.disabled = false;
+            renderMapData();
+        } else {
+            dataSelect.disabled = true;
+            renderMapData();
+        }
+    });
+
+    // 데이터 타입 선택 이벤트
+    document.getElementById('dataSelect').addEventListener('change', function(e) {
+        selectedDataType = e.target.value;
+        if (selectedFile && selectedCrop) {
+            renderMapData();
+        }
+    });
+});

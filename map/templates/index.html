@@ -3,28 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>작물별 토양적성 통계정보</title>
+    <title>토양 적성 지도</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="/static/css/map.css">
 </head>
 <body>
-    <div class="title">작물별 토양적성 통계정보</div>
-
-    <div class="dropdown-container">
-        <select id="dataSelector">
-            <option value="high_Suit_Area">최적지_면적</option>
-            <option value="suit_Area">적지_면적</option>
-            <option value="poss_Area">가능지_면적</option>
-            <option value="low_Suit_Area">저위생산지_면적</option>
-            <option value="etc_Area">기타_면적</option>
-        </select>
+    <div class="title-container" id="titleContainer" style="display: none;">
+        <span id="titleText"></span>
     </div>
 
-    <div id="map"></div>
+    <div class="controls">
+        <div class="control-row">
+            <label>CSV 파일:</label>
+            <select id="csvSelect">
+                <option value="">선택하세요</option>
+            </select>
+        </div>
 
-    <div class="legend">
-        <div class="legend-title">면적 (ha)</div>
-        <div class="legend-items" id="legendItems"></div>
+        <div class="control-row">
+            <label>작물:</label>
+            <select id="cropSelect" disabled>
+                <option value="">선택하세요</option>
+            </select>
+        </div>
+
+        <div class="control-row">
+            <label>항목:</label>
+            <select id="dataSelect" disabled>
+                <option value="high_Suit_Area">최적지_면적</option>
+                <option value="suit_Area">적지_면적</option>
+                <option value="poss_Area">가능지_면적</option>
+                <option value="low_Suit_Area">저위생산지_면적</option>
+                <option value="etc_Area">기타_면적</option>
+            </select>
+        </div>
+    </div>
+
+    <div id="mapContainer"></div>
+
+    <div class="legend-box" id="legendBox" style="display: none;">
+        <div class="legend-header" id="legendTitle">면적 (ha)</div>
+        <div class="legend-content" id="legendContent"></div>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
