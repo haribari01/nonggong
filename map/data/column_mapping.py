@@ -150,5 +150,107 @@ COLUMN_MAPPING = {
     "vldsia_Rfld3_Area": "유효규산 논101~150이하_면적",
     "vldsia_Rfld4_Area": "유효규산 논151~200이하_면적",
     "vldsia_Rfld5_Area": "유효규산 논201~250이하_면적",
-    "vldsia_Rfld6_Area": "유효규산 논251이상_면적"
+    "vldsia_Rfld6_Area": "유효규산 논251이상_면적",
+
+    # 배수등급
+    "exceswell_Drain_Area": "매우양호_면적",
+    "well_Drain_Area": "양호_면적",
+    "moderwell_Drain_Area": "약간양호_면적",
+    "moderpoor_Drain_Area": "약간불량_면적",
+    "poor_Drain_Area": "불량_면적",
+    "excespoor_Drain_Area": "매우불량_면적",
+
+    # 침식등급
+    "none_Erosion_Area": "없음_면적",
+    "exist_Erosion_Area": "있음_면적",
+    "heavy_Erosion_Area": "심함_면적",
+    "severe_Erosion_Area": "매우심함_면적",
+
+    # 표토자갈함량
+    "gravels_None_Area": "자갈이없음_면적",
+    "gravels_Exist_Area": "자갈이있음_면적",
+    "pebble_Exist_Area": "잔자갈이있음_면적",
+    "cobbles_Exist_Area": "잔돌이있음_면적",
+    "stone_Exist_Area": "돌이있음_면적",
+    "stonebould_Exist_Area": "돌과둥근바위가있음_면적",
+    "bould_Exist_Area": "둥근바위가있음_면적",
+    "rock_Exist_Area": "바위가있음_면적",
+    "rock_Many_Area": "바위가많음_면적",
+
+    # 분포지형
+    "mount_Tpgraphy_Area": "산악지_면적",
+    "hilly_Tpgraphy_Area": "구릉지_면적",
+    "piedmont_Tpgraphy_Area": "산록경사지_면적",
+    "valley_Tpgraphy_Area": "곡간지/선상지_면적",
+    "marnplain_Tpgraphy_Area": "해성평탄지_면적",
+    "allvplain_Tpgraphy_Area": "하성평탄지_면적",
+    "alpine_Tpgraphy_Area": "고원지_면적",
+    "diluvial_Tpgraphy_Area": "홍적대지_면적",
+    "lavaplate_Tpgraphy_Area": "용암류대지_면적",
+    "lavaplain_Tpgraphy_Area": "용암류평탄_면적",
+
+    # 퇴적양식
+    "alluvm_Layer_Area": "충적층_면적",
+    "diluvm_Layer_Area": "홍적층_면적",
+    "allcolluvm_Layer_Area": "충적붕적층_면적",
+    "colluvm_Layer_Area": "붕적층_면적",
+    "residum_Layer_Area": "잔적층_면적",
+
+    # 토양목
+    "histosols_Area": "Histosols_면적",
+    "andisols_Area": "Andisols_면적",
+    "ultisols_Area": "Ultisols_면적",
+    "mollisols_Area": "Mollisols_면적",
+    "alfisols_Area": "Alfisols_면적",
+    "inceptisols_Area": "Inceptisols_면적",
+    "entisols_Area": "Entisols_면적",
+
+    # 토양아목
+    "saprists_Area": "Saprists_면적",
+    "hemists_Area": "Hemists_면적",
+    "udands_Area": "Udands_면적",
+    "aquults_Area": "Aquults_면적",
+    "humults_Area": "Humults_면적",
+    "udults_Area": "Udults_면적",
+    "aquolls_Area": "Aquolls_면적",
+    "udolls_Area": "Udolls_면적",
+    "aqualfs_Area": "Aqualfs_면적",
+    "udalfs_Area": "Udalfs_면적",
+    "aquepts_Area": "Aquepts_면적",
+    "udepts_Area": "Udepts_면적",
+    "aquents_Area": "Aquents_면적",
+    "psamments_Area": "Psamments_면적",
+    "fluvents_Area": "Fluvents_면적",
+    "orthents_Area": "Orthents_면적",
+
+    # 주토지이용
+    "paddy_Area": "논_면적",
+    "field_Area": "밭_면적",
+    "fruit_Area": "과수/상전_면적",
+    "grass_Area": "초지_면적",
+    "forest_Area": "임지_면적",
+
+    # 논 저해요인
+    "except_Area": "제외_면적",
+    "none_Area": "없음_면적",
+    "slope_Area": "경사_면적",
+    "low_Moist_Area": "저습_면적",
+    "sand_Area": "사질_면적",
+    "stone_Power_Area": "석력_면적",
+    "salt_Area": "염해_면적",
+    "spaicd_Area": "특이산성_면적",
+    "unripe_Area": "미숙_면적",
+    "rock_Area": "암반_면적",
+    "volcano_Area": "화산회_면적",
+    "crush_Stone_Area": "분석_면적",
+
+    # 밭 적성등급
+    "field_Grade1_Area": "밭_1급지_면적",
+    "field_Grade2_Area": "밭_2급지_면적",
+    "field_Grade3_Area": "밭_3급지_면적",
+    "field_Grade4_Area": "밭_4급지_면적",
+    "field_Grade5_Area": "밭_5급지_면적",
+
+    # 기타 (공통)
+    "etc_Area": "기타_면적"
 }

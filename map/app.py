@@ -29,7 +29,17 @@ async def get_csv_list():
         {"filename": "SoilExamStat_Ka.csv", "display_name": "농경지화학성 칼륨 통계정보", "type": "soil"},
         {"filename": "SoilExamStat_Ca.csv", "display_name": "농경지화학성 칼슘 통계정보", "type": "soil"},
         {"filename": "SoilExamStat_Mg.csv", "display_name": "농경지화학성 마그네슘 통계정보", "type": "soil"},
-        {"filename": "SoilExamStat_Sa.csv", "display_name": "농경지화학성 유효규산 통계정보", "type": "soil"}
+        {"filename": "SoilExamStat_Sa.csv", "display_name": "농경지화학성 유효규산 통계정보", "type": "soil"},
+        {"filename": "SoilCharacStat_DistrbTopograpy.csv", "display_name": "토양도 기반 분포지형 통계 정보", "type": "soil"},
+        {"filename": "SoilCharacStat_AmnForm.csv", "display_name": "토양도 기반 퇴적양식 통계 정보", "type": "soil"},
+        {"filename": "SoilCharacStat_Tree.csv", "display_name": "토양도 기반 토양목 통계 정보", "type": "soil"},
+        {"filename": "SoilCharacStat_Sbr.csv", "display_name": "토양도 기반 토양아목 통계 정보", "type": "soil"},
+        {"filename": "SoilCharacStat_DrngGrad.csv", "display_name": "토양도 기반 배수등급 통계 정보", "type": "soil"},
+        {"filename": "SoilCharacStat_WashGrad.csv", "display_name": "토양도 기반 침식등급 통계 정보", "type": "soil"},
+        {"filename": "SoilCharacStat_TopslGrv.csv", "display_name": "토양도 기반 표토자갈함량 통계 정보", "type": "soil"},
+        {"filename": "SoilCharacStat_MainLand.csv", "display_name": "토양도 기반 주토지이용 통계 정보", "type": "soil"},
+        {"filename": "SoilCharacStat_FieldGrad.csv", "display_name": "토양도 기반 밭 적성등급 통계 정보", "type": "soil"},
+        {"filename": "SoilCharacStat_PaddyObstrcFctr.csv", "display_name": "토양도 기반 논 저해요인 통계 정보", "type": "soil"}
     ]
     return JSONResponse(content=csv_files)
 
