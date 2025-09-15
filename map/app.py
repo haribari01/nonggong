@@ -5,6 +5,7 @@ import pandas as pd
 import uvicorn
 from typing import Optional
 import os
+from data.column_mapping import COLUMN_MAPPING
 
 app = FastAPI()
 
@@ -21,7 +22,14 @@ async def home():
 @app.get("/api/csv-list")
 async def get_csv_list():
     csv_files = [
-        {"filename": "SoilFitStat_apple.csv", "display_name": "작물별 토양적성 통계정보"}
+        {"filename": "SoilFitStat_apple.csv", "display_name": "작물별 토양적성 통계정보", "type": "crop"},
+        {"filename": "SoilExamStat_pH.csv", "display_name": "농경지화학성 pH 통계정보", "type": "soil"},
+        {"filename": "SoilExamStat_Om.csv", "display_name": "농경지화학성 유기물 통계정보", "type": "soil"},
+        {"filename": "SoilExamStat_Ap.csv", "display_name": "농경지화학성 유효인산 통계정보", "type": "soil"},
+        {"filename": "SoilExamStat_Ka.csv", "display_name": "농경지화학성 칼륨 통계정보", "type": "soil"},
+        {"filename": "SoilExamStat_Ca.csv", "display_name": "농경지화학성 칼슘 통계정보", "type": "soil"},
+        {"filename": "SoilExamStat_Mg.csv", "display_name": "농경지화학성 마그네슘 통계정보", "type": "soil"},
+        {"filename": "SoilExamStat_Sa.csv", "display_name": "농경지화학성 유효규산 통계정보", "type": "soil"}
     ]
     return JSONResponse(content=csv_files)
 
@@ -36,68 +44,85 @@ async def get_crops(filename: str):
         return JSONResponse(content=[], status_code=500)
 
 
+@app.get("/api/soil-columns")
+async def get_soil_columns(filename: str):
+    """토양 성분 CSV의 컬럼 목록을 반환"""
+    try:
+        df = pd.read_csv(f"data/{filename}")
+        # 첫 번째 행(stdg_Cd)과 두 번째 행(bjd_Nm)을 제외한 컬럼들
+        columns = df.columns[2:].tolist()
+
+        # column_mapping을 사용해서 한글명으로 변환
+        column_info = []
+        for col in columns:
+            korean_name = COLUMN_MAPPING.get(col, col)
+            column_info.append({
+                'column': col,
+                'display_name': korean_name
+            })
+
+        return JSONResponse(content=column_info)
+    except Exception as e:
+        return JSONResponse(content=[], status_code=500)
+
+
 @app.get("/api/data")
-async def get_map_data(filename: str, crop_code: str, level: str = "sido"):
+async def get_map_data(filename: str, crop_code: str = None, level: str = "sido"):
     try:
         df = pd.read_csv(f"data/{filename}")
 
-        # 선택된 작물 필터링
-        df_filtered = df[df['soil_Crop_Cd'] == crop_code]
+        # 작물별 데이터와 토양 성분 데이터 구분
+        if crop_code:
+            # 작물별 데이터 (기존 로직)
+            df_filtered = df[df['soil_Crop_Cd'] == crop_code]
+        else:
+            # 토양 성분 데이터 (새로운 로직)
+            df_filtered = df.copy()
 
         if level == "sido":
             # 시도 레벨 데이터만 (3~10자리가 모두 0)
             sido_mask = df_filtered['stdg_Cd'].astype(str).str[2:10] == '00000000'
-            sido_data = df_filtered[sido_mask].copy()
-
-            # CTPRVN_CD 생성 (앞 2자리)
-            sido_data['region_cd'] = sido_data['stdg_Cd'].astype(str).str[:2]
+            result_data = df_filtered[sido_mask].copy()
+            result_data['region_cd'] = result_data['stdg_Cd'].astype(str).str[:2]
 
         elif level == "sigungu":
             # 시군구 레벨 데이터만 (6~10자리가 모두 0)
             sigungu_mask = df_filtered['stdg_Cd'].astype(str).str[5:10] == '00000'
-            sigungu_data = df_filtered[sigungu_mask].copy()
-
-            # SIG_CD 생성 (앞 5자리)
-            sigungu_data['region_cd'] = sigungu_data['stdg_Cd'].astype(str).str[:5]
-            result_data = sigungu_data
+            result_data = df_filtered[sigungu_mask].copy()
+            result_data['region_cd'] = result_data['stdg_Cd'].astype(str).str[:5]
 
         elif level == "eupmyeondong":
             # 읍면동 레벨 데이터만 (9~10자리가 모두 0)
             emd_mask = df_filtered['stdg_Cd'].astype(str).str[8:10] == '00'
-            emd_data = df_filtered[emd_mask].copy()
-
-            # EMD_CD 생성 (앞 8자리)
-            emd_data['region_cd'] = emd_data['stdg_Cd'].astype(str).str[:8]
-            result_data = emd_data
+            result_data = df_filtered[emd_mask].copy()
+            result_data['region_cd'] = result_data['stdg_Cd'].astype(str).str[:8]
 
         elif level == "li":
             # 리 레벨 데이터 (10자리 전체)
-            li_data = df_filtered.copy()
-
-            # LI_CD 생성 (10자리 전체)
-            li_data['region_cd'] = li_data['stdg_Cd'].astype(str)
-            result_data = li_data
+            result_data = df_filtered.copy()
+            result_data['region_cd'] = result_data['stdg_Cd'].astype(str)
 
         else:
             return JSONResponse(content=[])
 
-        # 시도는 이미 설정되어 있으므로 다른 레벨만 처리
-        if level != "sido":
+        # 작물별 데이터와 토양 성분 데이터에 따라 컬럼 선택
+        if crop_code:
+            # 작물별 데이터 컬럼
             columns = ['region_cd', 'bjd_Nm', 'soil_Crop_Nm', 'high_Suit_Area', 'suit_Area', 'poss_Area',
                        'low_Suit_Area', 'etc_Area']
-            result = result_data[columns].to_dict('records')
         else:
-            columns = ['region_cd', 'bjd_Nm', 'soil_Crop_Nm', 'high_Suit_Area', 'suit_Area', 'poss_Area',
-                       'low_Suit_Area', 'etc_Area']
-            result = sido_data[columns].to_dict('records')
+            # 토양 성분 데이터 컬럼 (stdg_Cd, bjd_Nm 제외한 모든 컬럼)
+            data_columns = [col for col in result_data.columns if col not in ['stdg_Cd', 'bjd_Nm']]
+            columns = ['region_cd', 'bjd_Nm'] + [col for col in data_columns if col != 'region_cd']
 
+        result = result_data[columns].fillna(0).to_dict('records')
         return JSONResponse(content=result)
     except Exception as e:
         print(f"Error: {e}")
         return JSONResponse(content=[], status_code=500)
 
 
-# CSV 다운로드 API 추가
+# CSV 다운로드 API
 @app.get("/api/download-csv")
 async def download_csv(filename: str):
     try:
